@@ -1,34 +1,41 @@
 import { useEffect, useState } from 'react';
 import { Users, Clock, Download } from 'lucide-react';
+import api from '../utils/api';
 
 const Dashboard = () => {
     const [stats, setStats] = useState(null);
     const [timeRange, setTimeRange] = useState('30 Days');
 
     useEffect(() => {
-        // ===== Generate Fake Traffic Data =====
-        const generateTraffic = (days) => {
-            return Array.from({ length: days }, (_, i) => ({
-                date: `Day ${i + 1}`,
-                value: 100 + i * 8 + Math.random() * 80 // แนวโน้มโตขึ้น
-            }));
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/analytics/overview');
+                setStats(res.data);
+            } catch (err) {
+                console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', err);
+                // Fallback to mock data on error
+                const generateTraffic = (days) => {
+                    return Array.from({ length: days }, (_, i) => ({
+                        date: `Day ${i + 1}`,
+                        value: 100 + i * 8 + Math.random() * 80
+                    }));
+                };
+                setStats({
+                    monthlyActiveUsers: 98432,
+                    peakUsageTime: "19:00 - 21:00",
+                    visits: 158420,
+                    visitGrowth: 18,
+                    trafficData: generateTraffic(30),
+                    topDestinations: [
+                        { name: "Phuket Beach", percent: 85, color: "#10B981" },
+                        { name: "Chiang Mai Old Town", percent: 72, color: "#3B82F6" },
+                        { name: "Bangkok Night Market", percent: 64, color: "#F59E0B" },
+                        { name: "Krabi Island", percent: 48, color: "#EF4444" }
+                    ]
+                });
+            }
         };
-
-        const mockData = {
-            monthlyActiveUsers: 98432,
-            peakUsageTime: "19:00 - 21:00",
-            visits: 158420,
-            visitGrowth: 18,
-            trafficData: generateTraffic(30),
-            topDestinations: [
-                { name: "Phuket Beach", percent: 85, color: "#10B981" },
-                { name: "Chiang Mai Old Town", percent: 72, color: "#3B82F6" },
-                { name: "Bangkok Night Market", percent: 64, color: "#F59E0B" },
-                { name: "Krabi Island", percent: 48, color: "#EF4444" }
-            ]
-        };
-
-        setStats(mockData);
+        fetchStats();
     }, []);
 
     if (!stats) {

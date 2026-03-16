@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../utils/api';
 
 const Login = ({ onLogin }) => {
     const [email, setEmail] = useState('');
@@ -12,23 +13,18 @@ const Login = ({ onLogin }) => {
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-
-            if (!res.ok) {
-                setError(data.message);
-                setLoading(false);
-                return;
-            }
+            const res = await api.post('/auth/login', { email, password });
+            const data = res.data;
 
             localStorage.setItem('admin', JSON.stringify(data.admin));
             onLogin(data.admin);
         } catch (err) {
-            setError('ไม่สามารถเชื่อมต่อ Server ได้');
+            if (err.response) {
+                setError(err.response.data?.message || 'เกิดข้อผิดพลาด');
+            } else {
+                setError('ไม่สามารถเชื่อมต่อ Server ได้');
+            }
+        } finally {
             setLoading(false);
         }
     };

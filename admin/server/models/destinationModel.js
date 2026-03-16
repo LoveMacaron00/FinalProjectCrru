@@ -101,7 +101,7 @@ async function create(data) {
  * อัปเดตข้อมูลสถานที่ (เฉพาะข้อมูลที่สร้างโดย Admin)
  * @param {number} id - ID ของสถานที่
  * @param {object} data - ข้อมูลที่ต้องการอัปเดต
- * @returns {boolean} - true ถ้าอัปเดตสำเร็จ, false ถ้าไม่พบ
+ * @returns {{ updated: boolean, removedImagePaths: string[] }}
  */
 async function update(id, data) {
     const {
@@ -128,26 +128,57 @@ async function update(id, data) {
         ]
     );
 
-    if (result.rowCount === 0) return false;
+    if (result.rowCount === 0) return { updated: false, removedImagePaths: [] };
+
+    // เก็บ path รูปเก่าใน destination_images ก่อนลบ
+    const { rows: oldImgs } = await db.query(
+        'SELECT image_url FROM destination_images WHERE destination_id = $1',
+        [id]
+    );
+    const removedImagePaths = oldImgs.map(r => r.image_url).filter(Boolean);
 
     // ลบรูปภาพเก่าทั้งหมด แล้วเพิ่มรูปใหม่
     await db.query('DELETE FROM destination_images WHERE destination_id = $1', [id]);
     await insertImages(id, images);
 
-    return true;
+    return { updated: true, removedImagePaths };
+}
+
+/**
+ * ดึง image paths ทั้งหมดของสถานที่ (image_url + destination_images)
+ * @param {number} id - ID ของสถานที่
+ * @returns {string[]} - รายการ URL รูปภาพ
+ */
+async function getImagePaths(id) {
+    const { rows: dest } = await db.query(
+        'SELECT image_url FROM destinations WHERE id = $1',
+        [id]
+    );
+    const { rows: imgs } = await db.query(
+        'SELECT image_url FROM destination_images WHERE destination_id = $1',
+        [id]
+    );
+
+    const paths = [];
+    if (dest[0]?.image_url) paths.push(dest[0].image_url);
+    imgs.forEach(r => { if (r.image_url) paths.push(r.image_url); });
+    return paths;
 }
 
 /**
  * ลบสถานที่ (เฉพาะข้อมูลที่สร้างโดย Admin)
  * @param {number} id - ID ของสถานที่
- * @returns {boolean} - true ถ้าลบสำเร็จ, false ถ้าไม่พบ
+ * @returns {{ deleted: boolean, imagePaths: string[] }}
  */
 async function remove(id) {
+    const imagePaths = await getImagePaths(id);
+
     const result = await db.query(
         'DELETE FROM destinations WHERE id = $1 AND source = $2',
         [id, 'admin']
     );
-    return result.rowCount > 0;
+
+    return { deleted: result.rowCount > 0, imagePaths };
 }
 
 // ============================================
@@ -176,5 +207,6 @@ module.exports = {
     findById,
     create,
     update,
-    remove
+    remove,
+    getImagePaths
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, MapPin, Eye, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
+import api from '../utils/api';
 
 const PAGE_SIZE = 10;
 const DEBOUNCE_MS = 500;
@@ -56,11 +57,6 @@ const Destinations = () => {
     // Fetch All Data (parallel)
     // -----------------------
     const fetchData = useCallback(async (keyword, pageNum) => {
-        // ยกเลิก request ก่อนหน้า
-        if (abortRef.current) abortRef.current.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-
         setLoading(true);
 
         try {
@@ -72,34 +68,23 @@ const Destinations = () => {
             tatParams.set('limit', PAGE_SIZE);
             tatParams.set('page', pageNum);
 
-            // fetch ทั้ง 2 API พร้อมกัน
             const [adminRes, tatRes] = await Promise.all([
-                fetch(`/api/destinations?${adminParams}`, { signal: controller.signal }),
-                fetch(`/api/v2/places?${tatParams}`, { signal: controller.signal })
+                api.get(`/destinations?${adminParams}`),
+                api.get(`/v2/places?${tatParams}`)
             ]);
 
-            const [adminData, tatJson] = await Promise.all([
-                adminRes.json(),
-                tatRes.json()
-            ]);
-
-            if (!controller.signal.aborted) {
-                setAdminDests(Array.isArray(adminData) ? adminData : []);
-                const results = tatJson?.data || [];
-                const pagination = tatJson?.pagination || {};
-                setTatDests(Array.isArray(results) ? results : []);
-                setTotalItems(pagination.total || 0);
-            }
+            setAdminDests(Array.isArray(adminRes.data) ? adminRes.data : []);
+            const results = tatRes.data?.data || [];
+            const pagination = tatRes.data?.pagination || {};
+            setTatDests(Array.isArray(results) ? results : []);
+            setTotalItems(pagination.total || 0);
         } catch (err) {
-            if (err.name !== 'AbortError') {
-                setAdminDests([]);
-                setTatDests([]);
-                setTotalItems(0);
-            }
+            console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', err);
+            setAdminDests([]);
+            setTatDests([]);
+            setTotalItems(0);
         } finally {
-            if (!controller.signal.aborted) {
-                setLoading(false);
-            }
+            setLoading(false);
         }
     }, []);
 
@@ -148,8 +133,12 @@ const Destinations = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('คุณต้องการลบสถานที่นี้หรือไม่?')) return;
 
-        await fetch(`/api/destinations/${id}`, { method: 'DELETE' });
-        fetchData(debouncedSearch, page);
+        try {
+            await api.delete(`/destinations/${id}`);
+            fetchData(debouncedSearch, page);
+        } catch (err) {
+            console.error('เกิดข้อผิดพลาดในการลบ:', err);
+        }
     };
 
     // -----------------------
@@ -182,6 +171,7 @@ const Destinations = () => {
                         tags: d.tags || [],
                         status: normalizeStatus(d.status),
                         introduction: d.introduction || d.sha?.detail || '',
+                        category: d.category?.name || '',
                         source: 'tat_api'
                     };
                 })
@@ -454,6 +444,13 @@ const Destinations = () => {
                                         <MapPin size={12} />
                                         {item.province || 'N/A'}
                                     </p>
+
+                                    {item.category && (
+                                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                                            <Tag size={12} />
+                                            {item.category}
+                                        </p>
+                                    )}
 
 
                                     <div className="flex items-center gap-3 mt-2">

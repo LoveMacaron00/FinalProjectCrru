@@ -3,7 +3,32 @@
 // จัดการ logic CRUD สำหรับสถานที่ท่องเที่ยว
 // ============================================
 
+const fs = require('fs');
+const path = require('path');
 const DestinationModel = require('../models/destinationModel');
+
+// ลบไฟล์จริงจาก /uploads (เฉพาะไฟล์ที่อยู่ใน /uploads เท่านั้น)
+const deleteUploadedFiles = (imagePaths) => {
+    console.log('[deleteUploadedFiles] paths:', imagePaths);
+    for (const imgPath of imagePaths) {
+        if (!imgPath) continue;
+        // imgPath เช่น /uploads/filename.jpg
+        if (!imgPath.startsWith('/uploads/')) {
+            console.log('[deleteUploadedFiles] skip (not /uploads/):', imgPath);
+            continue;
+        }
+        const filename = path.basename(imgPath);
+        const fullPath = path.join(__dirname, '..', 'uploads', filename);
+        console.log('[deleteUploadedFiles] deleting:', fullPath);
+        fs.unlink(fullPath, (err) => {
+            if (err) {
+                console.error('[deleteUploadedFiles] error:', fullPath, err.message);
+            } else {
+                console.log('[deleteUploadedFiles] deleted:', fullPath);
+            }
+        });
+    }
+};
 
 /**
  * ดึงรายการสถานที่ทั้งหมด (รองรับตัวกรอง)
@@ -66,11 +91,14 @@ const createDestination = async (req, res) => {
  */
 const updateDestination = async (req, res) => {
     try {
-        const updated = await DestinationModel.update(req.params.id, req.body);
+        const { updated, removedImagePaths } = await DestinationModel.update(req.params.id, req.body);
 
         if (!updated) {
             return res.status(404).json({ message: 'ไม่พบสถานที่ หรือไม่ใช่ข้อมูลของ Admin' });
         }
+
+        // ลบไฟล์รูปเก่าที่ถูกแทนที่ออกจาก /uploads
+        deleteUploadedFiles(removedImagePaths);
 
         res.json({ message: 'อัปเดตสถานที่สำเร็จ' });
     } catch (err) {
@@ -85,11 +113,14 @@ const updateDestination = async (req, res) => {
  */
 const deleteDestination = async (req, res) => {
     try {
-        const deleted = await DestinationModel.remove(req.params.id);
+        const { deleted, imagePaths } = await DestinationModel.remove(req.params.id);
 
         if (!deleted) {
             return res.status(404).json({ message: 'ไม่พบสถานที่ หรือไม่ใช่ข้อมูลของ Admin' });
         }
+
+        // ลบไฟล์รูปทั้งหมดของสถานที่นี้จาก /uploads
+        deleteUploadedFiles(imagePaths);
 
         res.json({ message: 'ลบสถานที่สำเร็จ' });
     } catch (err) {

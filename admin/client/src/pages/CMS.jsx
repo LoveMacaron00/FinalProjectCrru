@@ -1,41 +1,45 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, MapPin } from 'lucide-react';
+import api from '../utils/api';
 
 const CMS = () => {
     const [attractions, setAttractions] = useState([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [newAttraction, setNewAttraction] = useState({ name: '', location: '', description: ''});
 
-    const fetchAttractions = () => {
-        fetch('/api/attractions')
-            .then(res => res.json())
-            .then(data => setAttractions(data))
-            .catch(err => console.error("Error fetching attractions:", err));
+    const fetchAttractions = async () => {
+        try {
+            const res = await api.get('/attractions');
+            setAttractions(res.data);
+        } catch (err) {
+            console.error('Error fetching attractions:', err);
+        }
     };
 
     useEffect(() => {
         fetchAttractions();
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        fetch('/api/attractions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newAttraction)
-        })
-            .then(res => res.json())
-            .then(() => {
-                setIsFormOpen(false);
-                setNewAttraction({ name: '', location: '', description: ''});
-                fetchAttractions();
-            });
+        try {
+            await api.post('/attractions', newAttraction);
+            setIsFormOpen(false);
+            setNewAttraction({ name: '', location: '', description: '' });
+            fetchAttractions();
+        } catch (err) {
+            console.error('Error adding attraction:', err);
+        }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (!window.confirm("Are you sure?")) return;
-        fetch(`/api/attractions/${id}`, { method: 'DELETE' })
-            .then(() => fetchAttractions());
+        try {
+            await api.delete(`/attractions/${id}`);
+            fetchAttractions();
+        } catch (err) {
+            console.error('Error deleting attraction:', err);
+        }
     };
 
     return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, Shield, MessageSquare, Ban, Check, X } from 'lucide-react';
+import api from '../utils/api';
 
 const UserManager = () => {
     const [users, setUsers] = useState([]);
@@ -9,21 +10,19 @@ const UserManager = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('/api/users');
-            const data = await response.json();
-            setUsers(data);
-        } catch (error) {
-            console.log("Error fetching users: ", error);
+            const res = await api.get('/users');
+            setUsers(res.data);
+        } catch (err) {
+            console.error('Error fetching users:', err);
         }
     }
 
     const fetchFeedbacks = async () => {
         try {
-            const response = await fetch('/api/feedback');
-            const data = await response.json();
-            setFeedbacks(data);
-        } catch (error) {
-            console.log("Error fetching feedbacks: ", error);
+            const res = await api.get('/feedback');
+            setFeedbacks(res.data);
+        } catch (err) {
+            console.error('Error fetching feedbacks:', err);
         }
     }
 
@@ -34,44 +33,38 @@ const UserManager = () => {
 
     const handleBan = async (id) => {
         try {
-            const response = await fetch(`/api/users/${id}/ban`, {
-                method: 'PUT'
-            });
-            if (response.ok) {
-                const updatedUser = await response.json();
-                setUsers(prev =>
-                    prev.map(user =>
-                        user.id === updatedUser.id
-                            ? { ...user, is_banned: updatedUser.is_banned }
-                            : user
-                    )
-                );
-            }
-        } catch (error) {
-            console.log("Error banning user: ", error);
+            const res = await api.put(`/users/${id}/ban`);
+            const updatedUser = res.data;
+            setUsers(prev =>
+                prev.map(user =>
+                    user.id === updatedUser.id
+                        ? { ...user, is_banned: updatedUser.is_banned }
+                        : user
+                )
+            );
+        } catch (err) {
+            console.error('Error banning user:', err);
         }
     };
 
     const handleReply = async (id) => {
         try {
-            const response = await fetch(`/api/feedback/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'replied', admin_reply: replyText })
+            const res = await api.put(`/feedback/${id}`, {
+                status: 'replied',
+                admin_reply: replyText
             });
-            if (response.ok) {
-                setFeedbacks(prev =>
-                    prev.map(fb =>
-                        fb.id === id
-                            ? { ...fb, status: 'replied', admin_reply: replyText }
-                            : fb
-                    )
-                );
-                setReplyingTo(null);
-                setReplyText('');
-            }
-        } catch (error) {
-            console.log("Error replying: ", error);
+            const updatedFeedback = res.data;
+            setFeedbacks(prev =>
+                prev.map(fb =>
+                    fb.id === updatedFeedback.id
+                        ? { ...fb, status: 'replied', admin_reply: replyText }
+                        : fb
+                )
+            );
+            setReplyingTo(null);
+            setReplyText('');
+        } catch (err) {
+            console.error('Error replying:', err);
         }
     };
 
@@ -203,11 +196,10 @@ const UserManager = () => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${
-                                        fb.status === 'replied' 
-                                            ? 'bg-blue-500/20 text-blue-400'
-                                            : 'bg-yellow-500/20 text-yellow-400'
-                                    }`}>
+                                    <span className={`text-xs px-2 py-1 rounded-full ${fb.status === 'replied'
+                                        ? 'bg-blue-500/20 text-blue-400'
+                                        : 'bg-yellow-500/20 text-yellow-400'
+                                        }`}>
                                         {fb.status === 'replied' ? 'Replied' : 'Pending'}
                                     </span>
                                     <span className="text-xs text-gray-500">

@@ -6,6 +6,7 @@ import L from 'leaflet';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import 'leaflet/dist/leaflet.css';
+import api from '../utils/api';
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -55,9 +56,10 @@ const EditDestination = () => {
     // Fetch existing data
     // -----------------------
     useEffect(() => {
-        fetch(`/api/destinations/${id}`)
-            .then(res => res.json())
-            .then(data => {
+        const fetchDestination = async () => {
+            try {
+                const res = await api.get(`/destinations/${id}`);
+                const data = res.data;
                 setForm({
                     name: data.name || '',
                     province: data.province || '',
@@ -79,8 +81,12 @@ const EditDestination = () => {
                     });
                 }
                 setImages(existingImages);
-            })
-            .catch(() => setForm(null));
+            } catch (err) {
+                console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', err);
+                setForm(null);
+            }
+        };
+        fetchDestination();
     }, [id]);
 
     const handleChange = (field, value) => {
@@ -105,16 +111,16 @@ const EditDestination = () => {
             const formData = new FormData();
             Array.from(files).forEach(f => formData.append('images', f));
 
-            const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await res.json();
+            const res = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
 
-            if (res.ok && data.urls) {
-                setImages(prev => [...prev, ...data.urls]);
-            } else {
-                alert(data.message || 'Upload failed');
+            if (res.data.urls) {
+                setImages(prev => [...prev, ...res.data.urls]);
             }
-        } catch {
-            alert('Upload error');
+        } catch (err) {
+            console.error('Upload error:', err);
+            alert('อัปโหลดไม่สำเร็จ');
         }
         setUploading(false);
     }, []);
@@ -147,19 +153,11 @@ const EditDestination = () => {
                 image_url: images[0] || '',
                 images: images
             };
-            const res = await fetch(`/api/destinations/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                navigate('/destinations');
-            } else {
-                const data = await res.json();
-                alert(data.message || 'เกิดข้อผิดพลาด');
-            }
-        } catch {
-            alert('ไม่สามารถเชื่อมต่อ Server ได้');
+            await api.put(`/destinations/${id}`, payload);
+            navigate('/destinations');
+        } catch (err) {
+            console.error('เกิดข้อผิดพลาด:', err);
+            alert(err.response?.data?.message || 'เกิดข้อผิดพลาด');
         }
         setSaving(false);
     };

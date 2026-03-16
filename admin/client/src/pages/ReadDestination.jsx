@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock } from 'lucide-react';
+import api from '../utils/api';
 
 const ReadDestination = () => {
     const { id } = useParams();
@@ -11,13 +12,18 @@ const ReadDestination = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`/api/v2/places/${id}`)
-            .then(res => res.json())
-            .then(data => {
+        const fetchPlace = async () => {
+            try {
+                const res = await api.get(`/v2/places/${id}`);
+                const data = res.data;
                 setPlace(data?.data || data?.result || data);
+            } catch (err) {
+                console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', err);
+            } finally {
                 setLoading(false);
-            })
-            .catch(() => setLoading(false));
+            }
+        };
+        fetchPlace();
     }, [id]);
 
     if (loading) return <div className="p-6 text-gray-400">กำลังโหลดข้อมูล...</div>;
