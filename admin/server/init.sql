@@ -76,7 +76,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Insert default admin
 INSERT INTO admins (email, password)
-VALUES ('admin123', '135790')
+VALUES ('admin@gmail.com', '135790')
 ON CONFLICT (email) DO NOTHING;
 
 -- IVFFlat index (รัน หลังจาก insert ข้อมูล embedding แล้ว)
