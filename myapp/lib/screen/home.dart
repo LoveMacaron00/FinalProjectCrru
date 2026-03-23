@@ -1,131 +1,115 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/screen/login.dart';
 import 'package:myapp/screen/register.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  User? _user;
-  String? _idToken;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuth();
-  }
-
-  Future<void> _checkAuth() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final idToken = await user.getIdToken();
-      setState(() {
-        _user = user;
-        _idToken = idToken;
-      });
-    }
-  }
-
-  Future<void> _handleLogout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    const Color brandGold = Color(0xFFF4C025);
+    const Color backgroundGray = Color.fromARGB(255, 255, 255, 255);
+    const String logoUrl =
+        "https://www.figma.com/api/mcp/asset/4b722029-6546-45ca-8640-248159180d47";
+    const double designWidth = 412;
+    const double designHeight = 917;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_user != null ? "Home" : "Welcome"),
-        actions: [
-          if (_user != null)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _handleLogout,
-            ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 50, 10, 0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Text(
-                _user != null
-                    ? "Welcome, ${_user!.email}"
-                    : "Welcome to Application",
-                style: const TextStyle(fontSize: 24),
-              ),
-              const SizedBox(height: 20),
-              if (_user != null) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.person, size: 50),
-                        const SizedBox(height: 10),
-                        Text("Email: ${_user!.email}"),
-                        Text("UID: ${_user!.uid}"),
-                      ],
+      backgroundColor: backgroundGray,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: designWidth,
+                height: designHeight,
+                child: Stack(
+                  children: [
+                    const Positioned(
+                      left: 53,
+                      top: 143,
+                      child: Text(
+                        "Welcome to My App",
+                        style: TextStyle(
+                          color: brandGold,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.logout),
-                    label: const Text("Logout", style: TextStyle(fontSize: 20)),
-                    onPressed: _handleLogout,
-                  ),
-                ),
-              ] else ...[
-                Image.asset("assets/images/logo.jpg"),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text("Register", style: TextStyle(fontSize: 20)),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterScreen(),
+                    Positioned(
+                      left: 82,
+                      top: 294,
+                      width: 248,
+                      height: 288,
+                      child: Image.network(logoUrl, fit: BoxFit.contain),
+                    ),
+                    Positioned(
+                      left: 22,
+                      top: 694,
+                      width: 368,
+                      height: 65,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: brandGold,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.login),
-                    label: const Text("Login", style: TextStyle(fontSize: 20)),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text("Sign In"),
+                      ),
+                    ),
+                    Positioned(
+                      left: 22,
+                      top: 786,
+                      width: 368,
+                      height: 65,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: brandGold,
+                          backgroundColor: Colors.transparent,
+                          side: const BorderSide(color: brandGold, width: 1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      );
-                    },
-                  ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text("Sign Up"),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ],
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
